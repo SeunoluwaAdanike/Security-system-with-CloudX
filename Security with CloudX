@@ -1,0 +1,254 @@
+/*
+ * File:   securitysystemwithkeypad.c
+ * Author: Adanike Oluwaseun
+ *
+ * Created on 10 August 2018, 06:16
+ */
+
+
+#include <CloudX/M633.h>
+#include <CloudX/Lcd.h>
+#include <CloudX/Keypad.h>
+#include <CloudX/InternalMemory.h>
+
+#define numberofrows 4
+#define numberofcolumns 4
+
+char keypadcharacters[numberofrows][numberofcolumns] = {
+    '1', '2', '3', '+',
+    '4', '5', '6', '*',
+    '7', '8', '9', '/',
+    '.', '0', '-', '=',
+};
+
+char rowpin[] = {1,2,3,4};
+char columnpin[] = {5,6,7,8};
+int address = 0;
+char keypressed[6], password[6] , keys[6];
+char key = 0, try = 0;
+char stored[6] = "000000";
+
+setup()
+{
+           Lcd_setting(9,10,11,12,13,14); // RS,EN,D1,D2,D3,D4 
+           Lcd_cmd(cursorOff);
+           Lcd_cmd(clear);
+           pin15Mode = OUTPUT;
+           pin16Mode = OUTPUT;
+           
+           pin15 = LOW;
+           pin16 = HIGH;
+                    
+           Keypad_setting(PULLDOWNCOL, rowpin, columnpin, numberofrows, numberofcolumns, keypadcharacters);
+             for(byte i = 0; i < 6; i++ )
+                    {
+                        Memory_write(address, stored[i]);
+                        address++;    
+                    }
+           resetpassword();
+          
+    loop()
+    {   
+        key = 0;
+        lcdCmd(clear);
+        Lcd_writeText(1,1, "Enter a key: ");
+                
+                while(key == 0)
+                   key = Keypad_getKey();
+              
+                if(key == '0')
+                {
+                    Lcd_cmd(clear);
+                    try = 0;
+                    resetpassword();
+                    delayMs(1500);                   
+                   
+                }
+                
+                else
+                {   
+                    Lcd_cmd(clear);
+                    enterpassword();
+                    delayMs(1500);
+                    checkpassword();
+                   
+                }
+    }
+
+}
+setpassword()
+{   
+    lcdCmd(clear);
+    
+    Lcd_writeText(1,1, "EnterNewPassword:");
+    
+        lcdWrite(2, 1, " ");
+        
+         address = 0;
+         for(byte y = 0; y < 6; y++)
+               
+                {
+                keypressed[y] = 0;
+                Memory_write(address, keypressed[y]);
+                address++;
+                }
+        
+           address = 0;
+           
+           for(byte i = 0; i < 6; i++)
+           {              
+               while(keypressed[i] == 0)
+                   keypressed[i] = Keypad_getKey();
+               
+                    Lcd_writeCP(keypressed[i]);
+                    Memory_write(address, keypressed[i]);
+                    address++;       
+                    
+           } key = 0;
+}
+
+savepassword()
+{
+         Lcd_cmd(clear);
+         Lcd_writeText(1,1, "Password saved");
+         delayMs(1000);
+         lcdCmd(clear);
+}
+
+checkpassword()
+{  
+    Lcd_cmd(clear);
+    getpassword();
+    if(stored[0] == password[0])
+    {
+        if(stored[1] == password[1])
+        {
+            if(stored[2] == password[2])
+            {
+                if(stored[3] == password[3])
+                {
+                    if(stored[4] == password[4])
+                    {
+                        if(stored[5] == password[5])
+                        {
+                            Lcd_writeText(1,1, "ACCESS GRANTED");
+                            pin15 = HIGH;
+                            pin16 = LOW;
+                            
+                        }
+                    }
+                }
+            }
+       }
+    }
+        else
+        {
+        Lcd_cmd(clear);
+        Lcd_writeText(1,1, "ACCESS DENIED");
+        pin15 = LOW;
+        pin16 = HIGH;
+        }
+    
+    key = 0;
+    delayMs(10000);
+    pin15 = LOW;
+    pin16 = HIGH;
+}
+    
+    
+getpassword()
+{ 
+    address = 0;
+    
+     for(byte i = 0; i < 6; i++ )
+    {
+     stored[i] = 0;      
+    } 
+
+  for(byte i = 0; i < 6; i++ )
+ {
+     stored[i] = Memory_read(address);
+     address++;    
+ } 
+}
+
+enterpassword()
+{
+     for(byte y = 0; y < 6; y++)
+                {
+                    password[y] = 0;
+                }
+          
+            Lcd_writeText(1,2, "Enter password: ");
+            Lcd_write(2,1," ");
+              
+              for(byte y = 0; y < 6; y++)
+                {
+                    while(password[y] == 0)
+                    password[y] = Keypad_getKey();
+               
+                    Lcd_writeCP(password[y]);
+               }
+          
+}
+
+resetpassword()
+{
+  while(try == 0)
+   {
+    Lcd_cmd(clear);
+    Lcd_writeText(1,1, "EnterPrevious: ");
+    Lcd_writeText(2,1, " ");
+    
+      for(byte z = 0; z < 6; z++)
+        {
+            while(keys[z] == 0)
+                   keys[z]= Keypad_getKey();
+            
+            Lcd_writeCP(keys[z]);  
+        }  
+      getpassword();
+            if (keys[0] is stored[0]){
+                if (keys[1] is stored[1]){
+                    if (keys[2] is stored[2]){
+                        if (keys[3] is stored[3]){
+                            if (keys[4] is stored[4]){
+                                if (keys[5] is stored[5]){
+                  
+           
+                setpassword();
+                savepassword();
+                try++;
+                 delayMs(1500);
+                
+                                }
+                               
+                            }
+                        }
+                    }
+                }
+          }
+                        else
+                                {
+                                    Lcd_cmd(clear);
+                                    Lcd_writeText(2,1, "not conreponding");
+                                    delayMs(1000);
+                                    Lcd_cmd(clear);
+                                    try = 0;
+                                    
+                                    for(byte i = 0; i < 6; i++)
+                                        {
+                                            keys[i] = 0;
+                                        }
+
+                                    key = 0;
+                                }
+    }
+         for(byte i = 0; i < 6; i++)
+                {
+                    keys[i] = 0;
+                }
+                
+            key = 0;
+      
+}
